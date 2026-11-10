@@ -18,7 +18,8 @@ def make_windows(well: Well, channels: list[str], length_m: float, overlap: floa
 
     返回:
         win      (N, C, L)  曲线窗口，缺失通道整列 NaN
-        presence (N, C)     该通道在此窗口是否有观测
+        presence (N, C)     该通道在此窗口是否有观测（二值）
+        coverage (N, C)     该通道在此窗口的采样覆盖率（连续，0~1）
         starts   (N,)       窗口起始深度
         centers  (N,)       窗口中心深度
     """
@@ -48,17 +49,20 @@ def make_windows(well: Well, channels: list[str], length_m: float, overlap: floa
 
     win = np.empty((n, C, L), dtype=np.float32)
     presence = np.zeros((n, C), dtype=np.int8)
+    coverage = np.zeros((n, C), dtype=np.float32)
     starts = np.empty(n, dtype=float)
 
     for i in range(n):
         s = i * stride
         block = arr[:, s : s + L]
         win[i] = block
-        presence[i] = (np.isfinite(block).sum(axis=1) > 0).astype(np.int8)
+        fin = np.isfinite(block).sum(axis=1)
+        presence[i] = (fin > 0).astype(np.int8)
+        coverage[i] = fin / L
         starts[i] = well.depth[s]
 
     centers = starts + (L - 1) * step / 2.0
-    return win, presence, starts, centers
+    return win, presence, coverage, starts, centers
 
 
 def attach_labels(

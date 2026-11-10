@@ -63,16 +63,17 @@ def build(ds_name: str, cfg: dict):
     )
     lith_code = {n: i for i, n in enumerate(lith_names)}
 
-    acc = {k: [] for k in ("win", "pres", "y", "nl", "lith", "lc", "center", "well")}
+    acc = {k: [] for k in ("win", "pres", "cov", "y", "nl", "lith", "lc", "center", "well")}
     reports = []
 
     for w in wells:
-        win, pres, starts, centers = make_windows(w, channels, length_m, overlap)
+        win, pres, cov, starts, centers = make_windows(w, channels, length_m, overlap)
         y, n_label, lith, lith_consistent = attach_labels(
             starts, length_m, w.labels, lith_code, mode=task
         )
         acc["win"].append(win)
         acc["pres"].append(pres)
+        acc["cov"].append(cov)
         acc["y"].append(y)
         acc["nl"].append(n_label)
         acc["lith"].append(lith)
@@ -84,6 +85,7 @@ def build(ds_name: str, cfg: dict):
     out = {
         "win": np.concatenate(acc["win"]).astype(np.float32),
         "presence": np.concatenate(acc["pres"]).astype(np.int8),
+        "coverage": np.concatenate(acc["cov"]).astype(np.float32),
         "y": np.concatenate(acc["y"]).astype(np.float32),
         "n_label": np.concatenate(acc["nl"]).astype(np.int16),
         "lith": np.concatenate(acc["lith"]).astype(np.int16),

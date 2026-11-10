@@ -203,6 +203,11 @@ def main():
     ap.add_argument("--n-estimators", type=int, default=200)
     ap.add_argument("--seeds", type=int, default=1)
     ap.add_argument("--folds", type=int, default=5)
+    ap.add_argument(
+        "--use-presence",
+        action="store_true",
+        help="把通道存在性与覆盖率作为额外特征（缺失感知）",
+    )
     args = ap.parse_args()
 
     path = os.path.join("data", "processed", f"{args.dataset}_labeled_windows.npz")
@@ -221,6 +226,14 @@ def main():
     print(f"   参与建模 {mask.sum():,} 窗口，{len(set(wells.tolist()))} 口井")
 
     X, names = window_features(win, channels)
+
+    if args.use_presence and "coverage" in d.files:
+        pres = d["presence"][mask].astype(np.float32)
+        cov = d["coverage"][mask].astype(np.float32)
+        X = np.column_stack([X, pres, cov])
+        names += [f"{c}_present" for c in channels] + [f"{c}_coverage" for c in channels]
+        print(f"   已追加缺失感知特征：presence {pres.shape[1]} + coverage {cov.shape[1]}")
+
     print(f"   特征 {X.shape[1]} 维")
     y = y.astype(int) if task == "classification" else y
 
@@ -246,7 +259,8 @@ def main():
         ax.set_title(f"岩性分类混淆矩阵  acc={overall['acc']:.3f}")
         fig.colorbar(im, ax=ax, label="窗口数")
         fig.tight_layout()
-        png = os.path.join("reports", f"{args.dataset}_baseline_cm.png")
+        tag = "_presence" if args.use_presence else ""
+        png = os.path.join("reports", f"{args.dataset}_baseline_cm{tag}.png")
         fig.savefig(png, dpi=140)
         plt.close(fig)
     else:
@@ -260,12 +274,14 @@ def main():
         ax.set_ylabel("预测孔隙度")
         ax.set_title(f"RF 基线 R2={overall['r2']:.3f}")
         fig.tight_layout()
-        png = os.path.join("reports", f"{args.dataset}_baseline_rf.png")
+        tag = "_presence" if args.use_presence else ""
+        png = os.path.join("reports", f"{args.dataset}_baseline_rf{tag}.png")
         fig.savefig(png, dpi=140)
         plt.close(fig)
 
     print(f"\n出图: {png}")
-    js = os.path.join("reports", f"{args.dataset}_baseline.json")
+    tag = "_presence" if args.use_presence else ""
+    js = os.path.join("reports", f"{args.dataset}_baseline{tag}.json")
     with open(js, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     print(f"已保存: {js}")
