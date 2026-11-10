@@ -27,7 +27,8 @@ per = df.groupby("WELL").agg(
     n=("DEPTH_MD", "size"), top=("DEPTH_MD", "min"), bot=("DEPTH_MD", "max")
 )
 print(
-    f"每井行数: 中位 {int(per['n'].median())}, 最少 {int(per['n'].min())}, 最多 {int(per['n'].max())}"
+    f"每井行数: 中位 {int(per['n'].median())}, "
+    f"最少 {int(per['n'].min())}, 最多 {int(per['n'].max())}"
 )
 print(f"井段长度: 中位 {float((per['bot'] - per['top']).median()):.0f} m")
 
