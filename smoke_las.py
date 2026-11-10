@@ -1,4 +1,6 @@
-"""冒烟测试：LAS → 质控 → 出图 → 切窗口 → 存盘。
+"""LAS 格式的井数据检查：读入 → 质控 → 出图 → 切窗口 → 存盘。
+
+用于 LAS 格式（FORCE 2020 走 CSV 路径，见 build_dataset.py）。
 
 这是"第一步"的验收脚本。它不碰任何模型，只回答三个问题：
     1. 这份 LAS 能不能读进来？有哪些曲线、采样多少、深度范围多少？
@@ -6,8 +8,7 @@
     3. 按 2 m / 50% 重叠切窗，能得到多少个窗口、缺失率多少？
 
 用法:
-    python smoke_las.py data/raw/DEMO-01.las
-    python smoke_las.py data/raw/DEMO-01.las --window 2.0 --overlap 0.5
+    python smoke_las.py data/raw/<井名>.las
 """
 
 import argparse
@@ -139,22 +140,14 @@ def plot(depth, curves, core, gap_mask, out_png, well):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument(
-        "las_path",
-        nargs="?",
-        default="data/raw/DEMO-01.las",
-        help="LAS 文件路径；缺省时用合成井 data/raw/DEMO-01.las",
-    )
+    ap.add_argument("las_path", help="LAS 文件路径（必填）")
     ap.add_argument("--window", type=float, default=2.0, help="窗口长度 (m)")
     ap.add_argument("--overlap", type=float, default=0.5)
     ap.add_argument("--outdir", default="reports")
     args = ap.parse_args()
 
     if not os.path.exists(args.las_path):
-        msg = f"找不到文件: {args.las_path}"
-        if args.las_path.endswith("DEMO-01.las"):
-            msg += "\n提示：先运行 python make_demo_las.py 生成合成井"
-        sys.exit(msg)
+        sys.exit(f"找不到文件: {args.las_path}")
 
     las = lasio.read(args.las_path)
     well = str(las.well.WELL.value or os.path.basename(args.las_path))

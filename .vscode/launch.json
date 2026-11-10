@@ -2,31 +2,33 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "① 冒烟测试（合成井）",
+      "name": "① 构建 FORCE 数据集",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceFolder}/smoke_las.py",
-      "args": ["data/raw/DEMO-01.las"],
+      "program": "${workspaceFolder}/build_dataset.py",
+      "args": ["--dataset", "force2020"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": false
     },
     {
-      "name": "② GPU 演示（测井→孔隙度）",
+      "name": "② FORCE 岩性分类基线",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/src/baseline_rf.py",
+      "args": ["--dataset", "force2020", "--folds", "5"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": false
+    },
+    {
+      "name": "③ 环境自检（GPU）",
       "type": "debugpy",
       "request": "launch",
       "program": "${workspaceFolder}/demo_torch.py",
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "justMyCode": false
-    },
-    {
-      "name": "③ 生成合成井",
-      "type": "debugpy",
-      "request": "launch",
-      "program": "${workspaceFolder}/make_demo_las.py",
-      "cwd": "${workspaceFolder}",
-      "console": "integratedTerminal"
     },
     {
       "name": "④ 当前文件（带断点调试）",

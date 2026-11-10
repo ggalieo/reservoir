@@ -1,7 +1,6 @@
 """构建带标签的窗口数据集。
 
 用法:
-    python build_dataset.py --dataset s1_demo      # 回归（孔隙度）
     python build_dataset.py --dataset force2020    # 分类（岩性）
 
 换数据只改 configs/data.yaml，本文件无需修改。

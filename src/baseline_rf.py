@@ -5,7 +5,6 @@
     井数多（>=10） -> 按井分组的 K 折（GroupKFold）
 
 用法：
-    python -m src.baseline_rf --dataset s1_demo              # 回归
     python -m src.baseline_rf --dataset force2020 --folds 5  # 分类
 """
 
@@ -177,7 +176,7 @@ def run_classification(y, X, wells, feat_names, args, class_ids):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--dataset", default="s1_demo")
+    ap.add_argument("--dataset", default="force2020")
     ap.add_argument("--n-estimators", type=int, default=200)
     ap.add_argument("--seeds", type=int, default=1)
     ap.add_argument("--folds", type=int, default=5)

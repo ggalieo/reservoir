@@ -2,114 +2,71 @@
 
 配套本科毕设《油气藏多源数据智能表征方法与系统研究》。
 
-## 环境现状（已装好）
+当前使用 **FORCE 2020 公开真实数据**（98 口井，挪威北海），任务为岩性分类。
+合成/模拟数据已从工程中移除，git 历史中仍可追溯。
+
+## 环境
 
 | 项 | 值 |
 |---|---|
 | Python | 3.12.3（venv，见 `.venv/`） |
-| PyTorch | 2.6.0+cu124 ✅ CUDA 可用 |
-| GPU | RTX 4060 Laptop，8 GB，算力验证通过 |
+| PyTorch | 2.6.0+cu124，CUDA 可用 |
+| GPU | RTX 4060 Laptop 8 GB |
 | 调用方式 | `.venv\Scripts\python.exe`，**不要用 Activate.ps1** |
 
-> 本机 PowerShell 执行策略禁止 `.ps1`，所以一律用绝对路径调用解释器。
-
-一次验证全部关键项：
+验证：
 
 ```powershell
-.venv\Scripts\python.exe -c "import torch,numpy,lasio,welly,segyio,sklearn; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
+.venv\Scripts\python.exe -c "import torch; print(torch.__version__, torch.cuda.is_available(), torch.cuda.get_device_name(0))"
 ```
 
-期望：`2.6.0+cu124 True NVIDIA GeForce RTX 4060 Laptop GPU`
+## 数据：FORCE 2020
 
-## 装环境踩过的两个坑（重装时会再遇到）
-
-**① `download.pytorch.org` 下不动。** 实测单连接 0.85 MB/s 且经常直接卡死。
-解决：走阿里云镜像的分块并发下载，9 MB/s 左右，4.6 分钟拿完 2.5 GB。
+原始数据不在仓库中（`data/` 已忽略）。获取与转换：
 
 ```powershell
-# 分块并发下载（脚本见 git 历史中的 fetch_wheel2.py 思路：32 MB 一块、8 并发）
-# 然后本地安装：
-.venv\Scripts\python.exe -m pip install .\torch-2.6.0+cu124-cp312-cp312-win_amd64.whl
+# 1. 下载（raw.githubusercontent 被限速，用镜像）
+curl.exe -L --ssl-no-revoke -o train.zip `
+  "https://gh-proxy.com/https://raw.githubusercontent.com/bolgebrygg/Force-2020-Machine-Learning-competition/master/lithology_competition/data/train.zip"
+
+# 2. 解压后把 train.csv 放到 _cache/force2020/extracted/
+# 3. 转成每井一个 CSV + 岩性标签表
+.venv\Scripts\python.exe tools\convert_force.py
 ```
 
-注意：PyPI 上的 `torch` 在 Windows 是 **CPU 版**，`pip install torch` 装不到 CUDA。
+产物：`data/raw/force/` 下 98 个井 CSV + `lith_labels.csv`。
 
-**② `welly` 导入报 `No module named 'pkg_resources'`。**
-torch 安装会顺带把 setuptools 升到 84，而 setuptools 84 移除了 `pkg_resources`，welly 依赖它。
+数据规模：1,170,511 行 / 98 井 / 12 类岩性。
+
+曲线覆盖（真实数据的"脏"）：
+
+| 曲线 | 覆盖率 |
+|---|---|
+| GR | 100.0% |
+| RDEP | 99.1% |
+| DTC | 93.1% |
+| CALI | 92.5% |
+| RHOB | 86.2% |
+| **NPHI** | **65.4%** |
+
+四曲线齐全仅 **61.6%** —— 天然具备模态缺失场景，做鲁棒性实验无需人工注入。
+
+## 构建数据集
 
 ```powershell
-.venv\Scripts\python.exe -m pip install "setuptools<81"
+.venv\Scripts\python.exe build_dataset.py --dataset force2020
 ```
 
-## 一键恢复环境
-
-```powershell
-python -m venv .venv
-.venv\Scripts\python.exe -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple -r requirements.txt
-```
-
-（`requirements.txt` 里的 torch 需按上面①的方式单独装）
-
-## 数据链路冒烟测试
-
-没有真实数据时，先跑合成井验证整条链路：
-
-```powershell
-.venv\Scripts\python.exe make_demo_las.py
-.venv\Scripts\python.exe smoke_las.py data\raw\DEMO-01.las
-```
-
-产出：
-- `reports/smoke_DEMO-01.png` —— 四道曲线 + 岩心孔隙度，缺失段涂灰
-- `data/processed/DEMO-01_win.npz` —— 窗口数组 `(N, C, L)` + 通道存在性标记
-
-拿到真实 LAS 后换路径即可：
-
-```powershell
-.venv\Scripts\python.exe smoke_las.py data\raw\W-01.las --window 2.0 --overlap 0.5
-```
-
-## Jupyter
-
-已装 JupyterLab 4.6.6，并把本 venv 注册为内核 `Python (reservoir-repr)`。
-
-启动：
-
-```powershell
-cd C:\油气藏多源数据表征\reservoir-repr
-.venv\Scripts\python.exe -m jupyter lab --notebook-dir=.
-```
-
-浏览器会自动打开。**新建 notebook 时务必选 `Python (reservoir-repr)` 内核**，
-选成默认的 `python3` 会找不到 torch / lasio。
-
-已有 notebook：`notebooks/01_explore_las.ipynb`（读 LAS → 质控 → 四道曲线图 → 窗口化 → 存盘）。
-其中已内置"自动定位工程根目录"的逻辑，所以在 `notebooks/` 子目录下打开也不会找不到 `data/`。
-
-无界面执行（CI / 批量验证）：
-
-```powershell
-.venv\Scripts\python.exe -m nbconvert --to notebook --execute --inplace notebooks\01_explore_las.ipynb
-```
-
-## 构建带标签的窗口数据集
-
-```powershell
-.venv\Scripts\python.exe build_dataset.py --dataset s1_demo
-.venv\Scripts\python.exe build_dataset.py --dataset demo01
-```
-
-**换数据只改 `configs/data.yaml`，代码一行不动。** 数据集之间的差异（曲线命名、标签来源、
-单位、井清单）全部由配置吸收：
+**换数据只改 `configs/data.yaml`，代码一行不动。** 数据源差异全部由配置吸收：
 
 | 差异点 | 配置项 |
 |---|---|
-| 曲线叫 `CALI` 还是 `CAL` | `channels` 别名表 |
+| 曲线叫 `CALI` 还是 `CAL`、`RDEP` 还是 `RT` | `channels` 别名表 |
+| 曲线在 LAS 里还是在 CSV 里 | wells 项用 `las` 或 `csv` 字段 |
 | 标签在 CSV 里还是在 LAS 某列里 | `label.source: csv \| las_curve \| none` |
-| 标签列名叫 `孔隙度(%)` 还是 `PORO` | `label.*_col` |
-| 孔隙度是百分数还是小数 | `label.unit: percent \| fraction` |
-| 深度是 m 还是 ft | `units.depth` |
-| 有哪些井 | `wells` 列表 |
+| 监督任务类型 | `task: regression \| classification` |
+| 井很多（98 口） | `auto_wells` 按目录扫描 |
+| 深度/孔隙度单位 | `units.depth`、`label.unit` |
 
 输出 `data/processed/<dataset>_labeled_windows.npz`：
 
@@ -117,59 +74,52 @@ cd C:\油气藏多源数据表征\reservoir-repr
 |---|---|---|
 | `win` | (N, C, L) | 曲线窗口 |
 | `presence` | (N, C) | 该通道在此窗口是否有观测 |
-| `y` | (N,) | 孔隙度（小数）；**无标签为 NaN，不是 0** |
-| `n_label` | (N,) | 窗口内岩心点数 |
-| `lith` / `lith_consistent` | (N,) | 主岩性编码 / 窗内岩性是否单一 |
-| `depth_center` | (N,) | 窗口中心深度 |
-| `well` | (N,) | 井名 |
+| `y` | (N,) | 回归：孔隙度；分类：类别码。**无标签为 NaN，不是 0** |
+| `n_label` | (N,) | 窗口内标签点数 |
+| `depth_center` / `well` | (N,) | 窗口中心深度 / 井名 |
 | `channels` | (C,) | 通道顺序（全数据集统一） |
+| `task` / `class_ids` | (1,) / (K,) | 任务类型 / 分类类别码 |
 
-同时输出 `reports/<dataset>_dataset_report.json`（可直接入库的小体积统计）。
+## 基线结果
 
-### 已验证的两个数据集
+```powershell
+.venv\Scripts\python.exe -m src.baseline_rf --dataset force2020 --folds 5
+```
 
-| 数据集 | 井 | 窗口 | 有标签 | y 值域 | 说明 |
-|---|---|---|---|---|---|
-| `demo01` | 1 | 59 | 23 (39%) | 0.120–0.223 | 自造合成井，标签在 LAS 的 `CPOR` 列 |
-| `s1_demo` | 3 | 597 | 487 (82%) | 0.041–0.235 | 示例油田，标签在 CSV，曲线名 `CALI/RHOB/NPHI/DT` |
+RF + 42 维窗口统计量，按井分组 5 折：
 
-两个数据集的曲线命名、标签来源、井数都不同，**同一份代码零改动跑通**——这就是"换数据能跑"的验收证据。
+| 指标 | 值 |
+|---|---|
+| Accuracy | 0.697 |
+| **Balanced accuracy** | **0.369** |
+| **F1-macro** | **0.391** |
 
-无标签窗口（demo01 的 36 个、s1_demo 的 110 个）**保留不删**，留给自监督预训练使用。
+瓶颈在稀有岩性：大类召回 0.72–0.86，稀有类召回 0.00–0.19（如 65030 = 0.154）。
+混淆矩阵见 `reports/force2020_baseline_cm.png`。
+
+**这是本课题的靶子**：表征学习的价值不在提升大类精度，而在让小样本类可分。
 
 ## 目录
 
 ```
 reservoir-repr/
-├── .venv/                    # 虚拟环境（不入库）
-├── configs/                  # Hydra 配置（待建）
-├── data/
-│   ├── raw/                  # 原始 LAS / SEG-Y（不入库）
-│   └── processed/            # 窗口化产物
-├── notebooks/                # 探索性分析
-├── reports/                  # 图件
-├── runs/                     # 运行记录（配置快照 + 日志）
-├── src/                      # 正式代码（待建）
-├── make_demo_las.py          # 合成井生成器
-├── smoke_las.py              # 冒烟测试：读入→质控→出图→窗口化
-├── fetch_wheel2.py           # 分块并发下载 torch 轮子
-└── requirements.txt
+├── configs/data.yaml        # 数据集定义（换数据只改这里）
+├── data/raw/force/          # FORCE 井 CSV + 标签（不入库）
+├── data/processed/          # 窗口化产物（不入库）
+├── reports/                 # 基线结果与图件（入库）
+├── src/
+│   ├── config.py            # 配置加载与校验
+│   ├── io_wells.py          # LAS / CSV 适配层
+│   ├── windows.py           # 切窗与标签归属
+│   └── baseline_rf.py       # RF 基线（回归/分类）
+├── tools/convert_force.py   # FORCE 数据转换
+├── build_dataset.py         # 数据集构建入口
+├── profile_force.py         # 数据画像
+├── demo_torch.py            # 环境自检（随机数据，非研究用）
+├── smoke_las.py             # LAS 格式检查工具（需显式路径）
+└── PROGRESS.md              # 进度表
 ```
-
-## 冒烟测试验证了什么
-
-| 检查项 | 通过标志 |
-|---|---|
-| LAS 读取 | 打印曲线数与深度范围 |
-| 通道自动匹配 | 按别名匹配（GR/RHOB/DT 等不同命名均可） |
-| 质控 | 缺失率、稳健 z 尖峰数、值域逐通道给出 |
-| 窗口化 | 输出 `(N, C, L)` 与 presence 标记 |
-| 出图 | 缺失段与异常段肉眼可辨 |
-
-合成井实测：7/7 通道识别，60 m 切出 59 个 `(N,7,16)` 窗口，质控捕获注入的 15 处井径异常与 5 处电阻率尖峰。
 
 ## 下一步
 
-1. 从 FORCE 2020 取真实井，替换 `data/raw/` 下的合成井
-2. 把 `smoke_las.py` 里的函数拆进 `src/pipeline.py`
-3. 建 `configs/` 与 `src/train.py`，跑通第一个基线（RandomForest）
+见 `PROGRESS.md` 的待办：掩码自监督预训练 → 鲁棒性实验 → 井震跨模态 → 系统。
