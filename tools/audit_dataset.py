@@ -129,7 +129,6 @@ def check_features(d):
     for i in worst:
         if col_nan[i] > 0:
             print(f"    {names[i]:<12} NaN {col_nan[i]:.1%}")
-    med = np.nanmedian(X, axis=0)
     const = np.nanstd(X, axis=0) < 1e-12
     print(
         f"  训练集常数/退化列: {int(const.sum())}"
