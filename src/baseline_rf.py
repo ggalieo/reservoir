@@ -135,14 +135,20 @@ def run_classification(y, X, wells, feat_names, args, class_ids):
             )
             m.fit(Xtr, y[tr])
             pred = m.predict(Xte)
+            maj = int(np.bincount(y[tr]).argmax())
+            maj_acc = float(accuracy_score(y[te], np.full(te.size, maj)))
+            rf_acc = float(accuracy_score(y[te], pred))
             folds.append(
                 {
                     "fold": name,
                     "seed": seed,
                     "n": int(te.size),
-                    "acc": float(accuracy_score(y[te], pred)),
+                    "acc": rf_acc,
                     "bacc": float(balanced_accuracy_score(y[te], pred)),
                     "f1_macro": float(f1_score(y[te], pred, average="macro", zero_division=0)),
+                    "majority_class": maj,
+                    "majority_acc": maj_acc,
+                    "acc_gain_over_majority": rf_acc - maj_acc,
                 }
             )
             pt.append(y[te])
@@ -162,6 +168,23 @@ def run_classification(y, X, wells, feat_names, args, class_ids):
         "n": int(pt.size),
         "elapsed_s": round(time.time() - t0, 1),
     }
+    # ---- 众数基线对照 ----
+    print(f"\n{'折':<22}{'n':>8}{'众数类':>8}{'众数acc':>9}{'RF acc':>8}{'提升':>8}")
+    print("-" * 66)
+    for f in folds:
+        print(
+            f"{f['fold']:<22}{f['n']:>8}{f['majority_class']:>8}"
+            f"{f['majority_acc']:>9.3f}{f['acc']:>8.3f}"
+            f"{f['acc_gain_over_majority']:>+8.3f}"
+        )
+    mean_maj = float(np.mean([f["majority_acc"] for f in folds]))
+    mean_rf = float(np.mean([f["acc"] for f in folds]))
+    overall["majority_acc"] = mean_maj
+    overall["acc_gain_over_majority"] = mean_rf - mean_maj
+    print("-" * 66)
+    print(f"{'平均':<22}{'':>8}{'':>8}{mean_maj:>9.3f}{mean_rf:>8.3f}{mean_rf - mean_maj:>+8.3f}")
+    print("→ acc 需与上面这行对照才有意义；主指标应看 bacc 与 F1-macro")
+
     rec = recall_score(pt, pp, labels=labels, average=None, zero_division=0)
     cm = confusion_matrix(pt, pp, labels=labels)
     print(
