@@ -1,0 +1,17 @@
+# 统一换行符：文本按 LF 存储，Windows 检出时也不转 CRLF
+* text=auto eol=lf
+
+# 二进制文件不做换行转换
+*.png binary
+*.jpg binary
+*.npz binary
+*.npy binary
+*.whl binary
+*.pdf binary
+*.docx binary
+
+# 明确语言
+*.py text
+*.md text
+*.json text
+*.ipynb text

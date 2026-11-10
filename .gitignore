@@ -1,0 +1,30 @@
+# ---- Python 环境 ----
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# ---- 数据：原始数据与中间产物都不入库（大文件 / 涉密）----
+data/raw/
+data/processed/
+runs/
+
+# ---- 中间产物 ----
+*.npy
+*.npz
+*.h5
+*.pkl
+
+# ---- 安装包 ----
+*.whl
+
+# ---- 工具缓存 ----
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ---- 系统文件 ----
+Thumbs.db
+Desktop.ini
+
+# ---- 日志 ----
+*.log

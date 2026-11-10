@@ -1,0 +1,39 @@
+{
+  // 解释器固定指向本工程 venv，避免 VS Code 抓到系统 Python
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+
+  // 本机 PowerShell 执行策略禁止 .ps1，VS Code 自动激活会失败，关掉它
+  "python.terminal.activateEnvironment": false,
+
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.autoImportCompletions": true,
+
+  // 用 ruff 格式化与修复
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+
+  // notebook 默认用本工程内核
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+
+  // 数据文件不当文本搜，避免卡顿
+  "files.exclude": {
+    "**/.venv": true,
+    "**/__pycache__": true,
+    "**/*.npz": false
+  },
+  "search.exclude": {
+    "**/.venv": true,
+    "**/data/processed": true,
+    "**/runs": true
+  },
+
+  // 中文项目里 matplotlib 容易警告字形缺失，这里不隐藏，让它显式暴露
+  "files.encoding": "utf8",
+  "files.autoGuessEncoding": true
+}
