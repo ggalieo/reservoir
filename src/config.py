@@ -56,11 +56,32 @@ def get_dataset(cfg: dict[str, Any], name: str) -> dict[str, Any]:
     ds.setdefault("min_channels", cfg.get("min_channels", 3))
     ds.setdefault("paths", {"raw": "data/raw", "processed": "data/processed"})
 
+    # 井清单可以手写，也可以按目录自动扫描（井很多时用后者）
+    if "auto_wells" in ds and ds["auto_wells"]:
+        aw = ds["auto_wells"]
+        pattern = aw.get("pattern", "*.csv")
+        exclude = {str(x).lower() for x in aw.get("exclude", [])}
+        raw_dir = ds.get("paths", {}).get("raw", "data/raw")
+        if not os.path.isdir(raw_dir):
+            raise ConfigError(f"datasets.{name}.auto_wells: 目录不存在 {raw_dir}")
+        files = sorted(
+            f
+            for f in os.listdir(raw_dir)
+            if f.lower().endswith(pattern.replace("*", "")) and f.lower() not in exclude
+        )
+        if not files:
+            raise ConfigError(f"datasets.{name}.auto_wells: {raw_dir} 下没有匹配 {pattern} 的文件")
+        key = "csv" if pattern.endswith(".csv") else "las"
+        ds["wells"] = [
+            {"name": os.path.splitext(f)[0], key: f, "depth_col": aw.get("depth_col", "DEPTH")}
+            for f in files
+        ]
+
     if "wells" not in ds or not ds["wells"]:
-        raise ConfigError(f"datasets.{name} 缺少 wells 列表")
+        raise ConfigError(f"datasets.{name} 缺少 wells 列表（或 auto_wells 配置）")
     for w in ds["wells"]:
-        if "name" not in w or "las" not in w:
-            raise ConfigError(f"datasets.{name}.wells 每项都需要 name 与 las 字段: {w}")
+        if "name" not in w or ("las" not in w and "csv" not in w):
+            raise ConfigError(f"datasets.{name}.wells 每项都需要 name 与 las（或 csv）字段: {w}")
 
     label = ds.get("label", {"source": "none"})
     if label.get("source") not in ("none", "csv", "las_curve", None):
@@ -69,4 +90,9 @@ def get_dataset(cfg: dict[str, Any], name: str) -> dict[str, Any]:
             f"当前为 {label.get('source')!r}"
         )
     ds["label"] = label
+    ds.setdefault("task", "regression")
+    if ds["task"] not in ("regression", "classification"):
+        raise ConfigError(
+            f"datasets.{name}.task 只能是 regression / classification，当前 {ds['task']!r}"
+        )
     return ds

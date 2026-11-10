@@ -1,5 +1,6 @@
 {
  "dataset": "s1_demo",
+ "task": "regression",
  "channels": [
   "GR",
   "SP",
@@ -9,82 +10,9 @@
   "CNU",
   "AC"
  ],
- "lith_names": [
-  "泥岩",
-  "灰岩",
-  "砂岩"
- ],
- "wells": [
-  {
-   "well": "S1",
-   "n_windows": 199,
-   "n_labeled": 152,
-   "labeled_ratio": 0.7638190954773869,
-   "n_channels": 7,
-   "window_len_pts": 16,
-   "channel_coverage": [
-    1.0,
-    1.0,
-    1.0,
-    1.0,
-    1.0,
-    1.0,
-    1.0
-   ],
-   "y_min": 0.041200000792741776,
-   "y_max": 0.23489999771118164,
-   "y_mean": 0.11625657230615616,
-   "y_std": 0.05242345854640007,
-   "labels_per_window_mean": 0.7638190954773869,
-   "lith_consistent_ratio": 1.0
-  },
-  {
-   "well": "S2",
-   "n_windows": 199,
-   "n_labeled": 169,
-   "labeled_ratio": 0.8492462311557789,
-   "n_channels": 7,
-   "window_len_pts": 16,
-   "channel_coverage": [
-    0.9899497487437185,
-    0.9899497487437185,
-    0.9899497487437185,
-    0.9899497487437185,
-    0.9899497487437185,
-    0.9899497487437185,
-    0.9899497487437185
-   ],
-   "y_min": 0.045499999076128006,
-   "y_max": 0.2215999960899353,
-   "y_mean": 0.12702958285808563,
-   "y_std": 0.052285920828580856,
-   "labels_per_window_mean": 0.8492462311557789,
-   "lith_consistent_ratio": 1.0
-  },
-  {
-   "well": "S3",
-   "n_windows": 199,
-   "n_labeled": 166,
-   "labeled_ratio": 0.8341708542713567,
-   "n_channels": 7,
-   "window_len_pts": 16,
-   "channel_coverage": [
-    0.9949748743718593,
-    0.9949748743718593,
-    0.9949748743718593,
-    0.9949748743718593,
-    0.9949748743718593,
-    0.9949748743718593,
-    0.9949748743718593
-   ],
-   "y_min": 0.04050000011920929,
-   "y_max": 0.218299999833107,
-   "y_mean": 0.11739758402109146,
-   "y_std": 0.05057099089026451,
-   "labels_per_window_mean": 0.8341708542713567,
-   "lith_consistent_ratio": 1.0
-  }
- ],
+ "n_wells": 3,
+ "skipped": [],
  "total_windows": 597,
- "labeled_windows": 487
+ "labeled_windows": 487,
+ "class_ids": []
 }

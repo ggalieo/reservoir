@@ -78,6 +78,35 @@ def match_channels(las, alias_map: dict[str, list[str]]) -> tuple[dict[str, str]
     return picked, missing
 
 
+def _load_logs_csv(path: str, alias_map: dict, depth_col: str = "DEPTH"):
+    """从 CSV 读曲线（真实数据常以表格导出，而非 LAS）。
+
+    返回 (depth, {标准名: ndarray}, 未匹配的标准名列表)。
+    """
+    df = pd.read_csv(path)
+    cols = {str(c).strip().upper(): c for c in df.columns}
+    if depth_col.strip().upper() not in cols:
+        raise KeyError(
+            f"{os.path.basename(path)} 缺少深度列 {depth_col!r}；现有列: {list(df.columns)[:12]}..."
+        )
+    depth = pd.to_numeric(df[cols[depth_col.strip().upper()]], errors="coerce").to_numpy(float)
+
+    curves: dict[str, np.ndarray] = {}
+    missing: list[str] = []
+    for std, aliases in alias_map.items():
+        hit = None
+        for alias in aliases:
+            a = alias.strip().upper()
+            if a in cols:
+                hit = cols[a]
+                break
+        if hit is None:
+            missing.append(std)
+            continue
+        curves[std] = pd.to_numeric(df[hit], errors="coerce").to_numpy(float)
+    return depth, curves, missing
+
+
 def _to_nan(arr: np.ndarray, null_value: float | None) -> np.ndarray:
     out = np.asarray(arr, dtype=float).copy()
     if null_value is not None and np.isfinite(null_value):
@@ -142,16 +171,38 @@ def load_well(well_cfg: dict, ds_cfg: dict) -> Well:
     """读取一口井，返回与原始格式无关的统一结构。"""
     name = well_cfg["name"]
     raw_dir = ds_cfg["paths"]["raw"]
-    las_path = os.path.join(raw_dir, well_cfg["las"])
-    if not os.path.exists(las_path):
+    notes: list[str] = []
+
+    src_name = well_cfg.get("las") or well_cfg.get("csv")
+    if not src_name:
+        raise KeyError(f"{name}: wells 项需要 las 或 csv 字段")
+    src_path = os.path.join(raw_dir, src_name)
+    if not os.path.exists(src_path):
         raise FileNotFoundError(
-            f"找不到 LAS: {las_path}\n"
-            f"  检查 configs/data.yaml 里 datasets.*.paths.raw 与 wells.las 是否匹配"
+            f"找不到数据文件: {src_path}\n"
+            f"  检查 configs/data.yaml 里数据集 paths.raw 与 wells 的文件名是否匹配"
         )
 
-    las = lasio.read(las_path)
-    depth = np.asarray(las.index, dtype=float)
-    notes: list[str] = []
+    is_csv = "csv" in well_cfg or well_cfg.get("fmt") == "csv"
+    if is_csv:
+        depth, curves_raw, missing = _load_logs_csv(
+            src_path, ds_cfg["channels"], well_cfg.get("depth_col", "DEPTH")
+        )
+        picked = dict(curves_raw)
+        null_value = None
+        idx_unit = ""
+        las = None
+        notes.append("CSV 曲线输入")
+    else:
+        las = lasio.read(src_path)
+        depth = np.asarray(las.index, dtype=float)
+        picked, missing = match_channels(las, ds_cfg["channels"])
+        curves_raw = {std: las[raw].data for std, raw in picked.items()}
+        try:
+            null_value = float(las.well.NULL.value)
+        except Exception:
+            null_value = None
+        idx_unit = str(getattr(las.curves[0], "unit", "") or "").strip().lower()
 
     # 深度方向归一：真实数据里存在深度递减的井
     if depth.size > 1 and depth[0] > depth[-1]:
@@ -162,13 +213,11 @@ def load_well(well_cfg: dict, ds_cfg: dict) -> Well:
         flip = False
 
     # 深度单位换算
-    idx_unit = str(getattr(las.curves[0], "unit", "") or "").strip().lower()
     want = ds_cfg.get("units", {}).get("depth", "m").lower()
     if idx_unit in ("ft", "f", "feet") and want == "m":
         depth = depth * FT_TO_M
         notes.append("深度由 ft 换算为 m")
 
-    picked, missing = match_channels(las, ds_cfg["channels"])
     if len(picked) < ds_cfg["min_channels"]:
         raise ValueError(
             f"{name}: 只匹配到 {len(picked)} 条通道（要求 ≥{ds_cfg['min_channels']}）。\n"
@@ -181,15 +230,9 @@ def load_well(well_cfg: dict, ds_cfg: dict) -> Well:
     if missing:
         notes.append(f"未匹配通道: {', '.join(missing)}")
 
-    null_value = None
-    try:
-        null_value = float(las.well.NULL.value)
-    except Exception:
-        pass
-
     curves = {}
-    for std, raw in picked.items():
-        curves[std] = _to_nan(las[raw].data, null_value)
+    for std, arr in curves_raw.items():
+        curves[std] = _to_nan(arr, null_value)
 
     # 标签要按原始深度轴取（重采样会把稀疏的岩心列插值成假数据）
     depth_orig = depth.copy()
@@ -203,7 +246,7 @@ def load_well(well_cfg: dict, ds_cfg: dict) -> Well:
     src = label_cfg.get("source")
     if src == "las_curve":
         curve = label_cfg.get("curve")
-        if curve and curve in {c.mnemonic for c in las.curves}:
+        if las is not None and curve and curve in {c.mnemonic for c in las.curves}:
             raw_lbl = _to_nan(las[curve].data, null_value)
             if flip:
                 raw_lbl = raw_lbl[::-1]
@@ -230,4 +273,4 @@ def load_well(well_cfg: dict, ds_cfg: dict) -> Well:
         else:
             notes.append(f"标签文件不存在: {csv_path}")
 
-    return Well(name=name, depth=depth, curves=curves, labels=labels, source=las_path, notes=notes)
+    return Well(name=name, depth=depth, curves=curves, labels=labels, source=src_path, notes=notes)

@@ -17,7 +17,7 @@ channels:
   GR:  [GR, GAM, GAPI, CGR, GRD]
   SP:  [SP, SPC, SPONT]
   CAL: [CAL, CALI, CALIPER, HCAL]
-  RT:  [RT, ILD, RILD, LLD, RDEEP, RES, LLD_S]
+  RT:  [RT, ILD, RILD, LLD, RDEEP, RES, LLD_S, RDEP, RMED, RSHA, RXO]
   DEN: [DEN, RHOB, ZDEN, RHOZ]
   CNU: [CNU, CNL, NPHI, TNPH, NPOR]
   AC:  [AC, DT, DTC, SONIC, DTCO]
@@ -42,7 +42,27 @@ datasets:
     units:
       depth: m
 
-  # ---------------- 示例油田三口井 ----------------
+  # ---------------- FORCE 2020 公开真实数据（98 口井，岩性分类）----------------
+  force2020:
+    task: classification
+    target_step_m: 0.15          # 原始采样约 0.15 m，不做 0.125 重采样以免插值造假精度
+    paths:
+      raw: data/raw/force
+      processed: data/processed
+    auto_wells:                  # 井太多，按目录扫描而不是手写 98 条
+      pattern: "*.csv"
+      exclude: ["lith_labels.csv"]
+      depth_col: "DEPTH"
+    label:
+      source: csv
+      file: lith_labels.csv
+      well_col: 井名
+      depth_col: 深度(m)
+      value_col: 岩性编码
+      unit: code                 # 分类标签，数值即类别码
+    units:
+      depth: m
+
   s1_demo:
     paths:
       raw: data/raw

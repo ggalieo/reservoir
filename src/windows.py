@@ -66,8 +66,12 @@ def attach_labels(
     length_m: float,
     labels: LabelSet | None,
     lith_code: dict[str, int] | None = None,
+    mode: str = "regression",
 ):
-    """把岩心标签按深度归属到窗口（窗内取均值）。
+    """把标签按深度归属到窗口。
+
+    mode="regression"     窗内标签取均值（孔隙度等连续量）
+    mode="classification" 窗内标签取众数（岩性等离散类别）
 
     返回 y / n_label / lith / lith_consistent，均为 (N,)
     """
@@ -82,27 +86,37 @@ def attach_labels(
 
     d = np.asarray(labels.depth, dtype=float)
     v = np.asarray(labels.value, dtype=float)
-    lith_names = labels.lith
+    order = np.argsort(d)
+    d, v = d[order], v[order]
+    lith_names = labels.lith[order] if labels.lith is not None else None
 
-    for i, s in enumerate(starts):
-        m = (d >= s) & (d < s + length_m)
-        k = int(m.sum())
+    lo = np.searchsorted(d, starts, side="left")
+    hi = np.searchsorted(d, starts + length_m, side="left")
+
+    for i in range(n):
+        a, b = int(lo[i]), int(hi[i])
+        if b <= a:
+            continue
+        vals = v[a:b]
+        ok = np.isfinite(vals)
+        k = int(ok.sum())
         if k == 0:
             continue
-        vals = v[m]
-        ok = np.isfinite(vals)
-        if ok.sum() == 0:
-            continue
-        y[i] = float(np.mean(vals[ok]))
-        n_label[i] = int(ok.sum())
+        n_label[i] = k
+        good = vals[ok]
+
+        if mode == "classification":
+            codes, counts = np.unique(good, return_counts=True)
+            y[i] = float(codes[np.argmax(counts)])
+        else:
+            y[i] = float(np.mean(good))
 
         if lith_names is not None and lith_code:
-            names = lith_names[m][ok]
+            names = lith_names[a:b][ok]
             uniq = np.unique(names)
             lith_consistent[i] = int(uniq.size == 1)
-            # 多数票
-            vals_u, counts = np.unique(names, return_counts=True)
-            lith[i] = lith_code.get(str(vals_u[np.argmax(counts)]), -1)
+            u, c = np.unique(names, return_counts=True)
+            lith[i] = lith_code.get(str(u[np.argmax(c)]), -1)
 
     return y, n_label, lith, lith_consistent
 

@@ -1,0 +1,31 @@
+{
+ "dataset": "force2020",
+ "task": "classification",
+ "channels": [
+  "GR",
+  "SP",
+  "CAL",
+  "RT",
+  "DEN",
+  "CNU",
+  "AC"
+ ],
+ "n_wells": 98,
+ "skipped": [],
+ "total_windows": 198943,
+ "labeled_windows": 197750,
+ "class_ids": [
+  30000,
+  65000,
+  65030,
+  70000,
+  70032,
+  74000,
+  80000,
+  86000,
+  88000,
+  90000,
+  93000,
+  99000
+ ]
+}
