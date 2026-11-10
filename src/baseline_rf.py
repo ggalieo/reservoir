@@ -89,7 +89,8 @@ def run(dataset: str, n_estimators: int, seeds: int):
     lith = lith[mask]
     print(f"== {dataset} ==")
     print(
-        f"   总窗口 {mask.size}，无标签 {dropped_label}，空窗 {dropped_empty} → 参与建模 {mask.sum()}"
+        f"   总窗口 {mask.size}，无标签 {dropped_label}，空窗 {dropped_empty}"
+        f" → 参与建模 {mask.sum()}"
     )
 
     X, feat_names = window_features(win, channels)
