@@ -31,7 +31,7 @@ datasets:
   # ---------------- FORCE 2020 公开真实数据（98 口井，岩性分类）----------------
   force2020:
     task: classification
-    target_step_m: 0.15          # 原始采样约 0.15 m，不做 0.125 重采样以免插值造假精度
+    target_step_m: 0.152         # FORCE 原生步长实测为 0.1520 m；写成 0.15 会触发全库插值
     paths:
       raw: data/raw/force
       processed: data/processed

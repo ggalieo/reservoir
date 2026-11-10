@@ -12,8 +12,8 @@
  ],
  "n_wells": 98,
  "skipped": [],
- "total_windows": 198943,
- "labeled_windows": 197750,
+ "total_windows": 194926,
+ "labeled_windows": 194926,
  "class_ids": [
   30000,
   65000,

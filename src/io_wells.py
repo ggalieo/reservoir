@@ -120,7 +120,7 @@ def _resample(depth: np.ndarray, curves: dict[str, np.ndarray], target_step: flo
     if depth.size < 2:
         return depth, curves, False
     cur = float(np.median(np.diff(depth)))
-    if abs(cur - target_step) <= 1e-9:
+    if abs(cur - target_step) <= target_step * 1e-3:
         return depth, curves, False
 
     new_depth = np.arange(depth[0], depth[-1] + target_step * 0.5, target_step)
