@@ -92,6 +92,51 @@ cd C:\油气藏多源数据表征\reservoir-repr
 .venv\Scripts\python.exe -m nbconvert --to notebook --execute --inplace notebooks\01_explore_las.ipynb
 ```
 
+## 构建带标签的窗口数据集
+
+```powershell
+.venv\Scripts\python.exe build_dataset.py --dataset s1_demo
+.venv\Scripts\python.exe build_dataset.py --dataset demo01
+```
+
+**换数据只改 `configs/data.yaml`，代码一行不动。** 数据集之间的差异（曲线命名、标签来源、
+单位、井清单）全部由配置吸收：
+
+| 差异点 | 配置项 |
+|---|---|
+| 曲线叫 `CALI` 还是 `CAL` | `channels` 别名表 |
+| 标签在 CSV 里还是在 LAS 某列里 | `label.source: csv \| las_curve \| none` |
+| 标签列名叫 `孔隙度(%)` 还是 `PORO` | `label.*_col` |
+| 孔隙度是百分数还是小数 | `label.unit: percent \| fraction` |
+| 深度是 m 还是 ft | `units.depth` |
+| 有哪些井 | `wells` 列表 |
+
+输出 `data/processed/<dataset>_labeled_windows.npz`：
+
+| 字段 | 形状 | 含义 |
+|---|---|---|
+| `win` | (N, C, L) | 曲线窗口 |
+| `presence` | (N, C) | 该通道在此窗口是否有观测 |
+| `y` | (N,) | 孔隙度（小数）；**无标签为 NaN，不是 0** |
+| `n_label` | (N,) | 窗口内岩心点数 |
+| `lith` / `lith_consistent` | (N,) | 主岩性编码 / 窗内岩性是否单一 |
+| `depth_center` | (N,) | 窗口中心深度 |
+| `well` | (N,) | 井名 |
+| `channels` | (C,) | 通道顺序（全数据集统一） |
+
+同时输出 `reports/<dataset>_dataset_report.json`（可直接入库的小体积统计）。
+
+### 已验证的两个数据集
+
+| 数据集 | 井 | 窗口 | 有标签 | y 值域 | 说明 |
+|---|---|---|---|---|---|
+| `demo01` | 1 | 59 | 23 (39%) | 0.120–0.223 | 自造合成井，标签在 LAS 的 `CPOR` 列 |
+| `s1_demo` | 3 | 597 | 487 (82%) | 0.041–0.235 | 示例油田，标签在 CSV，曲线名 `CALI/RHOB/NPHI/DT` |
+
+两个数据集的曲线命名、标签来源、井数都不同，**同一份代码零改动跑通**——这就是"换数据能跑"的验收证据。
+
+无标签窗口（demo01 的 36 个、s1_demo 的 110 个）**保留不删**，留给自监督预训练使用。
+
 ## 目录
 
 ```

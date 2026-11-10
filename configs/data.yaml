@@ -1,0 +1,64 @@
+# ============================================================================
+# 数据配置：换一套数据只改这个文件，代码一行不动
+#
+# 用法:  python build_dataset.py --dataset s1_demo
+# ============================================================================
+
+# ---- 全局参数（各数据集可覆盖）----
+window:
+  length_m: 2.0      # 窗口长度
+  overlap: 0.5       # 相邻窗口重叠比例
+
+target_step_m: 0.125  # 统一重采样步长
+
+# ---- 曲线别名：目标标准名 -> 原始文件里可能的名字（按顺序尝试）----
+# 换油田时只需在对应列表里加一个新名字，不要改代码
+channels:
+  GR:  [GR, GAM, GAPI, CGR, GRD]
+  SP:  [SP, SPC, SPONT]
+  CAL: [CAL, CALI, CALIPER, HCAL]
+  RT:  [RT, ILD, RILD, LLD, RDEEP, RES, LLD_S]
+  DEN: [DEN, RHOB, ZDEN, RHOZ]
+  CNU: [CNU, CNL, NPHI, TNPH, NPOR]
+  AC:  [AC, DT, DTC, SONIC, DTCO]
+
+# 通道缺失时是否允许继续（False 则报错，便于及早发现配置错误）
+allow_missing_channels: true
+min_channels: 3      # 至少匹配到几条才继续
+
+datasets:
+
+  # ---------------- 自造合成井（验证用）----------------
+  demo01:
+    paths:
+      raw: data/raw
+      processed: data/processed
+    wells:
+      - {name: DEMO-01, las: DEMO-01.las}
+    label:
+      source: las_curve     # 标签直接放在 LAS 的某一列里
+      curve: CPOR
+      unit: fraction        # fraction | percent
+    units:
+      depth: m
+
+  # ---------------- 示例油田三口井 ----------------
+  s1_demo:
+    paths:
+      raw: data/raw
+      processed: data/processed
+    wells:
+      - {name: S1, las: S1.las}
+      - {name: S2, las: S2.las}
+      - {name: S3, las: S3.las}
+    label:
+      source: csv           # 标签在独立 CSV 里
+      file: core_porosity.csv
+      well_col: 井名
+      depth_col: 深度(m)
+      value_col: 孔隙度(%)
+      unit_col: 孔隙度(%)   # 单位从列名推断（含 % 视为百分数）
+      lith_col: 岩性
+      unit: percent
+    units:
+      depth: m

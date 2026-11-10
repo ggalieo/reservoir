@@ -1,0 +1,40 @@
+{
+ "dataset": "demo01",
+ "channels": [
+  "GR",
+  "SP",
+  "CAL",
+  "RT",
+  "DEN",
+  "CNU",
+  "AC"
+ ],
+ "lith_names": [],
+ "wells": [
+  {
+   "well": "DEMO-01",
+   "n_windows": 59,
+   "n_labeled": 23,
+   "labeled_ratio": 0.3898305084745763,
+   "n_channels": 7,
+   "window_len_pts": 16,
+   "channel_coverage": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+   ],
+   "y_min": 0.12004999816417694,
+   "y_max": 0.22282999753952026,
+   "y_mean": 0.16792131960391998,
+   "y_std": 0.03193897008895874,
+   "labels_per_window_mean": 0.3898305084745763,
+   "lith_consistent_ratio": 0.0
+  }
+ ],
+ "total_windows": 59,
+ "labeled_windows": 23
+}
